@@ -23,4 +23,5 @@ Subject:  Web Development & API Integration
 6. Google captcha integration
 7. excel import export
 8. rest api integration
+9. Razorpay Integration  
 
