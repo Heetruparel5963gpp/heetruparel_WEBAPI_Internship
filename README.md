@@ -7,6 +7,7 @@
 06_No_Google_Captcha  
 07_No_Excel_Import_Export  
 08_No_RESTAPI_Integration  
+09_Razorpay_integration  
 
 student name: Ruparel heet dilipbhai  
 collage name: Goverment Polytechnic Porbandar  
