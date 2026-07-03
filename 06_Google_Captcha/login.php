@@ -1,99 +1,256 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Login Form</title>
+<?php
 
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+error_reporting(E_ALL);
+ini_set("display_errors",1);
 
-    <style>
-        *{
-            margin:0;
-            padding:0;
-            box-sizing:border-box;
-            font-family:Arial, sans-serif;
-        }
+session_start();
 
-        body{
-            height:100vh;
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            background:#f4f4f4;
-        }
+include("db.php");
 
-        .login-box{
-            width:350px;
-            background:#fff;
-            padding:30px;
-            border-radius:10px;
-            box-shadow:0 0 10px rgba(0,0,0,0.2);
-        }
+/* CHECK FORM */
 
-        .login-box h2{
-            text-align:center;
-            margin-bottom:20px;
-        }
+if(
+!isset($_POST['email'])
+||
+!isset($_POST['password'])
+)
+{
+header("Location: login.html");
+exit();
+}
 
-        .form-group{
-            margin-bottom:15px;
-        }
+/* RECAPTCHA CHECK */
 
-        .form-group input{
-            width:100%;
-            padding:10px;
-            border:1px solid #ccc;
-            border-radius:5px;
-        }
+if(
+!isset($_POST['g-recaptcha-response'])
+||
+empty($_POST['g-recaptcha-response'])
+)
+{
 
-        button{
-            width:100%;
-            padding:10px;
-            background:#007bff;
-            color:#fff;
-            border:none;
-            border-radius:5px;
-            cursor:pointer;
-            font-size:16px;
-        }
+echo "
 
-        button:hover{
-            background:#0056b3;
-        }
+<script>
 
-        .msg{
-            text-align:center;
-            margin-top:10px;
-            color:red;
-        }
-    </style>
-</head>
-<body>
+alert(
+'Please complete the Google reCAPTCHA.'
+);
 
-<div class="login-box">
+window.location='login.html';
 
-    <h2>Login</h2>
+</script>
 
-    <form action="login_process.php" method="post">
+";
 
-        <div class="form-group">
-            <input type="text" name="username" placeholder="Username" required>
-        </div>
+exit();
 
-        <div class="form-group">
-            <input type="password" name="password" placeholder="Password" required>
-        </div>
+}
 
-        <div class="form-group">
-            <div class="g-recaptcha"
-                 data-sitekey="6LeoGhMtAAAAAPF8fSywiaDDrs-evEZZ7P6lg1hW">
-            </div>
-        </div>
+/* SECRET KEY */
 
-        <button type="submit">Login</button>
+$secretKey =
+"6LeUyEAtAAAAANZ2N78FfuISjde-mFIBNG4qmjHM";
 
-    </form>
+/* CAPTCHA RESPONSE */
 
-</div>
+$captcha =
+$_POST['g-recaptcha-response'];
 
-</body>
-</html>
+/* VERIFY CAPTCHA */
+
+$verify =
+file_get_contents(
+
+"https://www.google.com/recaptcha/api/siteverify?secret="
+.$secretKey.
+"&response=".$captcha
+
+);
+
+$response =
+json_decode(
+$verify
+);
+
+if(
+!$response->success
+)
+{
+
+echo "
+
+<script>
+
+alert(
+'Google reCAPTCHA verification failed.'
+);
+
+window.location='login.html';
+
+</script>
+
+";
+
+exit();
+
+}
+
+/* GET DATA */
+
+$email =
+trim($_POST['email']);
+
+$password =
+trim($_POST['password']);
+
+/* FIND USER */
+
+$query =
+mysqli_query(
+
+$conn,
+
+"SELECT *
+FROM users
+WHERE email='$email'
+LIMIT 1"
+
+);
+
+if(
+$query
+&&
+mysqli_num_rows($query)==1
+)
+{
+
+$user =
+mysqli_fetch_assoc(
+$query
+);
+
+/* PASSWORD CHECK (CASE SENSITIVE) */
+
+if(
+$password !==
+$user['password']
+)
+{
+
+echo "
+
+<script>
+
+alert(
+'Invalid Email or Password'
+);
+
+window.location='login.html';
+
+</script>
+
+";
+
+exit();
+
+}
+
+/* BLOCK CHECK */
+
+if(
+isset($user['status'])
+&&
+$user['status']=="blocked"
+)
+{
+
+echo "
+
+<script>
+
+alert(
+'You are blocked from our website. Contact Admin.'
+);
+
+window.location='login.html';
+
+</script>
+
+";
+
+exit();
+
+}
+
+/* SESSION */
+
+$_SESSION['user_id'] =
+$user['id'];
+
+$_SESSION['user_name'] =
+$user['name'];
+
+$_SESSION['role'] =
+$user['role'];
+
+/* ONLINE */
+
+$user_id =
+$user['id'];
+
+mysqli_query(
+
+$conn,
+
+"UPDATE users
+SET is_online=1
+WHERE id='$user_id'"
+
+);
+
+/* REDIRECT */
+
+if(
+$user['role']=="admin"
+)
+{
+
+header(
+"Location: AAdmin/admin.html"
+);
+
+}
+else
+{
+
+header(
+"Location: homepage.php"
+);
+
+}
+
+exit();
+
+}
+else
+{
+
+echo "
+
+<script>
+
+alert(
+'Invalid Email or Password'
+);
+
+window.location='login.html';
+
+</script>
+
+";
+
+exit();
+
+}
+
+?>
